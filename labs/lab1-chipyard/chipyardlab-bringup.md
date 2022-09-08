@@ -23,23 +23,17 @@ While you will not be required to write any Chisel code in this lab, basic famil
 <!-- An initial introduction to Chisel can be found in the Chisel bootcamp:  [https://github.com/freechipsproject/chisel-bootcamp](https://github.com/freechipsproject/chisel-bootcamp).  -->
 <!-- Detailed documentation of Chisel functions can be found in [https://www.chisel-lang.org/api/SNAPSHOT/index.html](https://www.chisel-lang.org/api/SNAPSHOT/index.html). -->
 
-Throughout the rest of the course, we will be developing our SoC using Chipyard as the base framework. 
+Throughout the rest of the course, we will be testing our chips using Chipyard as our base framework. 
 There is a lot in Chipyard so we will only be able to explore a part of it in this lab, but hopefully you will get a brief sense of its capabilities.
-We will simulate a Rocket Chip-based design at the RTL level, and then synthesize and place-and-route it in Intel 22nm technology using the Hammer back-end flow.
+We will generate a Rocket Chip-based design at the RTL level, and then synthesize and place-and-route it on the Xilinx VCU118 FPGA.
 
 ![](assets/chipyard-components.PNG)
 
 
 ## Access & Setup
 
-It should be clear by now this isn't going like most other courses. Most don't require signing non-disclosure agreements, or setting up a long string of IT infrastructure. Such is chip-design life. Running the Intel22 ChipYard lab will require access to a handful of BWRC research resources, including:
+It should be clear by now this isn't going like most other courses. Most don't require signing non-disclosure agreements, or setting up a long string of IT infrastructure. Such is chip-design life. Make sure you have access to the BWRC servers and follow separate instructions to SSH into them before attempting the rest of this lab.
 
-* Command-line access to the BWRC Linux servers
-* The BWRC-Repo GitLab instance at [https://bwrcrepo.eecs.berkeley.edu](https://bwrcrepo.eecs.berkeley.edu)
-
-If you don't have access to any of these, this isn't going to work yet. As of this lab's writing most student setup is in progress; if yours doesn't work yet, take a minute to bug your peers about whether theirs does, and perhaps bug your instructors or admins for good measure. 
-
-This lab also presumes much of its GitLab interaction will occur via SSH. While setting up git to use HTTPS instead is possible by editing several lab materials, we recommend instead setting up [SSH keys](https://bwrcrepo.eecs.berkeley.edu/profile/keys) on the BWRC-Repo GitLab instance. 
 
 ## Getting Started
 
@@ -47,26 +41,27 @@ First, we will need to setup our Chipyard workspace.
 All of our work will occur on the BWRC compute cluster. 
 For this lab, please work in the `/tools/C/` directory on the machine. 
 This lab will likely generate too much data for it to fit in your home directory. 
-All required materials are stored in the [BWRC-Repo GitLab instance](https://bwrcrepo.eecs.berkeley.edu).
 
 
 First source the following environment file. This will add pre-compiled binaries of all the RISC-V tools to your PATH.
 
 ```
 source /tools/C/ee290/env-riscv-tools.sh
+# TODO: add Vivado to the path
 ```
 
 
 Run the commands below. These commands clone the Chipyard repository, then initialize all the submodules.
 
 ```
-mkdir -p /tools/C/userName/bringup
-cd /tools/C/userName/bringup
-git clone <PATH TO CHIPYARD> chipyard
+mkdir -p /tools/C/<userName>/bringup
+cd /tools/C/<userName>/bringup
+git clone https://github.com/ucberkeley-ee290c/chipyard-osci-bringup.git chipyard
+
 cd chipyard
 ./scripts/init-submodules-no-riscv-tools.sh
+./scripts/init-fpga.sh
 ```
-
 
 You may have noticed while initializing your Chipyard repo that there are many submodules.  
 Chipyard is built to allow the designer to generate complex configurations from different projects 
@@ -81,9 +76,88 @@ Many times, an accelerator block is connected to the Rocket core with a memory-m
 This allows the core to configure and read from the block.
 Again, there is far too much to discuss fully here, but you can really put together a system very quickly using the infrastructure of Chipyard.
 
+## FPGA Config Exploration
+The Chipyard FPGA flow has been nicely configured to run with the Arty A7 and the VCU118 FPGA boards. We will be using the VCU118 setup.
+Let's explore the configuration files:
+
+```
+cd ~chipyard/fpga/src/main/scala/vcu118
+```
+
+Open `Configs.scala` and briefly skim through the code, in particular look at `WithVCU118Tweaks`. How is the FPGA frequency being set? Can you trace classes being called in that class? (Hint: look at `~chipyard/generators/chipyard/src/main/scala/config/fragments/ClockingFragments.scala` for their implementations.
+
+Next, open `FMCUtil.scala`. Here, you will see two objects: `FMCMap` and `FMCPMap`. These are utility functions that take the FMC connector pin name and return the VCU118 pin name. We have access to the FMC pin names [here](https://fmchub.github.io/appendix/VITA57_FMC_HPC_LPC_SIGNALS_AND_PINOUT.html), making it much easier to use these than the VCU118 pin names.
+
+A previous student doing chip bringup graciously exposed more useful APIs with the VCU188, which we will explore next.
+```
+cd ~chipyard/fpga/src/main/scala/vcu118/bringup
+```
+Open `Configs.scala`. Compare the `RocketBringupConfig` in `vcu118/bringup/Configs.scala` file to the `RocketBringupConfig` in `vcu118/Configs.scala`
+What are some of the changes added in `WithBringupAdditions`?
+
+
+## Design Elaboration
+
+The first step of the FPGA flow is to elaborate the Chisel source into verilog. 
+
+
+**Note: For all compute intensive commands in the FPGA flow (all make commands from this point forwards), run them on the LSF.** In other words, prepend the command with
+
+```
+bsub -Is
+```
+
+To generate all of the verilog files, run:
+
+```
+make verilog SUB_PROJECT=bringup
+```
+
+- `SUB_PROJECT` is used to set various Makefile build variables like `CONFIG`, `BOARD`, and `FPGA_BRAND`. Open the Makefile to see what the values of these variables are for `SUB_PROJECT=bringup`.
+- The`verilog` target describes a Makefile fragment that elaborates the Chisel source into verilog. After this command runs, the generated verilog for the design should appear in the `fpga/generated-src/<long-design-name>/<long-design-name>.top.v` directory.
+
+Notice that in the Makefile, having `SUB_PROJECT=vcu118` selects the `chipyard.fpga.vcu118.RocketVCU118Config`, whereas `SUB_PROJECT=bringup` selects `chipyard.fpga.vcu118.bringup.RocketVCU118Config`.
+
+### Configuring the TSI Host
+
+Go back to the `src/main/scala/vcu118/bringup/Configs.scala` file.
+Arguably the most important part of the FPGA configuration is the `WithBringupPeripherals` addition. Look at the `case PeripheryTSIHostKey =>` list. The `TSIHostParams` class sets a bunch of important parameters that configures the TSI host. These parameters must absolutely match the TSI parameters on the test chip for them to communicate over the TSI interface. As an example, `offchipSerialIfWidth` sets the data width. 
+
+For the OsciBear chip, we are trying to match the following module declaration (this Verilog snippet is taken directly from the OsciBear post-synthesis netlist):
+
+```
+module GenericSerializer(clock, reset, io_in_ready, io_in_valid,
+     io_in_bits_chanId, io_in_bits_opcode, io_in_bits_param,
+     io_in_bits_size, io_in_bits_source, io_in_bits_address,
+     io_in_bits_data, io_in_bits_corrupt, io_in_bits_union,
+     io_in_bits_last, io_out_ready, io_out_valid, io_out_bits);
+  input clock, reset, io_in_valid, io_in_bits_corrupt, io_in_bits_last,
+       io_out_ready;
+  input [2:0] io_in_bits_chanId, io_in_bits_opcode, io_in_bits_param;
+  input [3:0] io_in_bits_size, io_in_bits_source;
+  input [31:0] io_in_bits_address;
+  input [63:0] io_in_bits_data;
+  input [7:0] io_in_bits_union;
+  output io_in_ready, io_out_valid, io_out_bits;
+```
+
+We have tried to replicate this in the `src/main/scala/vcu118/bringup/ConfigsOsci.scala` file. Look at the difference in `TSIHostParams` here versus in the `Configs.scala` file in the same directory. Let's generate the verilog for the Osci configuration:
+
+```
+make verilog SUB_PROJECT=osci
+```
+
+Now open the `*top.v` file for the `OsciRocketBringupConfig` (
+`generated-src/chipyard.fpga.vcu118.bringup.BringupVCU118FPGATestHarness.OsciRocketBringupConfig/chipyard.fpga.vcu118.bringup.BringupVCU118FPGATestHarness.OsciRocketBringupConfig.top.v`)
+and locate the module declaration for `GenericDeserializer`. Which signal is contributing to the mismatch? Try out a few changes to the `TSIHostParams` in `OsciConfigs.scala` and re-generate the verilog to try to make these ports match.
+
 
 ## FPGA Bitstream Generation
 
+Now it's time to generate the FPGA bitstream.
+```
+make bitstream SUB_PROJECT=osci
+```
 
 ## Linux Image Generation
 
