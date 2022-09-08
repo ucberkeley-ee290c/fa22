@@ -17,6 +17,6 @@ SCUM-V22 - add link here!!
 [OsciBear PCB Schematic](https://drive.google.com/file/d/1LTJZ4nYAWx7QoTrBjxlKNDqR4id7Ls6m/view)
 
 ## Course Links
-[Slack](https://join.slack.com/t/fa22bringupclass/shared_invite/zt-1fuuu9j69-OP2GTaUfcZ461ahXVXSA_w)
+[Slack](https://join.slack.com/t/194bringup/shared_invite/zt-1fwo87bg1-tyiWNVvH2d1lSRYybVpHJQ)
 
 [bCourses](https://bcourses.berkeley.edu/courses/1518323)
