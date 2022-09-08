@@ -8,12 +8,19 @@ BWRC & FPGA Bringup Platform Edition
 
 ## Overview
 
-![](assets/chipyard-flow.PNG)
+Our envisioned testing setup is shown below. Most of the testing will be driven by a large FPGA, the [Xilinx VCU118](https://www.xilinx.com/support/documents/boards_and_kits/vcu118/ug1224-vcu118-eval-bd.pdf), which will have a RISC-V Softcore running Linux and various C programs to send and receive signals from the test chip. The FPGA is connected to the chip via [FMC connector](https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/Samtec_ASP-134488-01_male_FMC_HPC_connector_PP008733.jpg/2560px-Samtec_ASP-134488-01_male_FMC_HPC_connector_PP008733.jpg) (basically just a high-bandwidth PCB pin connector that has high speed and analog/digital pins).
 
-In this lab, we will explore the [Chipyard](https://github.com/ucb-bar/chipyard) framework. 
+![](asserts/bringup-setup.PNG)
+
+Both the core + digital peripherals on the test chip and FPGA were generated using the [Chipyard](https://github.com/ucb-bar/chipyard) framework. In this lab we will explore generating the verilog for these components, then converting the verilog to a bitstream to flash onto the FPGA.
+
 Chipyard is an integrated design, simulation, and implementation framework for open source hardware development developed here at UC Berkeley. 
 Chipyard is open-sourced online and is based on the Chisel and FIRRTL hardware description libraries, as well as the Rocket Chip SoC generation ecosystem.
 Chipyard brings together much of the work on hardware design methodology from Berkeley over the last decade as well as useful tools into a single repository that guarantees version compatibility between the projects it submodules.
+
+
+![](assets/chipyard-flow.PNG)
+
 
 A designer can use Chipyard to build, test, and tapeout (manufacture) a RISC-V-based SoC.
 This includes RTL development integrated with Rocket Chip, cloud FPGA-accelerated simulation with FireSim, and physical design with the Hammer framework.
