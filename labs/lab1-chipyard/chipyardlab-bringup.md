@@ -10,7 +10,7 @@ BWRC & FPGA Bringup Platform Edition
 
 Our envisioned testing setup is shown below. Most of the testing will be driven by a large FPGA, the [Xilinx VCU118](https://www.xilinx.com/support/documents/boards_and_kits/vcu118/ug1224-vcu118-eval-bd.pdf), which will have a RISC-V Softcore running Linux and various C programs to send and receive signals from the test chip. The FPGA is connected to the chip via [FMC connector](https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/Samtec_ASP-134488-01_male_FMC_HPC_connector_PP008733.jpg/2560px-Samtec_ASP-134488-01_male_FMC_HPC_connector_PP008733.jpg) (basically just a high-bandwidth PCB pin connector that has high speed and analog/digital pins).
 
-![](asserts/bringup-setup.PNG)
+![](assets/bringup-setup.PNG)
 
 Both the core + digital peripherals on the test chip and FPGA were generated using the [Chipyard](https://github.com/ucb-bar/chipyard) framework. In this lab we will explore generating the verilog for these components, then converting the verilog to a bitstream to flash onto the FPGA.
 
@@ -50,15 +50,16 @@ For this lab, please work in the `/tools/C/` directory on the machine.
 This lab will likely generate too much data for it to fit in your home directory. 
 
 
-First source the following environment file. This will add pre-compiled binaries of all the RISC-V tools to your PATH.
+First source the following environment file. This will add pre-compiled binaries of all the RISC-V tools and Vivado to your PATH.
+You will need to run these commands in every new terminal you open, so you should add them to your `~/.bashrc`.
 
 ```
 source /tools/C/ee290/env-riscv-tools.sh
-# TODO: add Vivado to the path
+export PATH=/tools/xilinx/Vivado/2018.3/bin/vivado:$PATH
 ```
 
 
-Run the commands below. These commands clone the Chipyard repository, then initialize all the submodules.
+Run the commands below. These commands clone the Chipyard repository, then initialize all the submodules. You only need to do this once.
 
 ```
 mkdir -p /tools/C/<userName>/bringup
@@ -127,8 +128,23 @@ Notice that in the Makefile, having `SUB_PROJECT=vcu118` selects the `chipyard.f
 
 ### Configuring the TSI Host
 
+One of the main ways we'll be debugging the digital portion of our chips is using the TSI (Tethered Serial Interface) protocol.
+This interface consists of the following signals, where `N` is the width of the data as specified in the chipyard config (more on this below):
+```
+input tl_in_valid, tl_out_ready;
+input [N:0] tl_in_bits;
+output tl_in_ready, tl_out_valid;
+output [N:0] tl_out_bits;
+```
+
+There is a serializer/deserializer module (TLSerdesser) on both the FPGA and the test chip, which converts the TileLink messages to the TSI protocol (serialize) and vice versa (deserialize). This interface is shown below.
+
+![](assets/TSI.png)
+
+This TSI interface must match EXACTLY for the FPGA to be able to communicate with the test chip, and it's a bit tricky to get the FPGA interface to match the test chip. Let's look at how this is done.
+
 Go back to the `src/main/scala/vcu118/bringup/Configs.scala` file.
-Arguably the most important part of the FPGA configuration is the `WithBringupPeripherals` addition. Look at the `case PeripheryTSIHostKey =>` list. The `TSIHostParams` class sets a bunch of important parameters that configures the TSI host. These parameters must absolutely match the TSI parameters on the test chip for them to communicate over the TSI interface. As an example, `offchipSerialIfWidth` sets the data width. 
+Arguably the most important part of the FPGA configuration is the `WithBringupPeripherals` addition. Look at the `case PeripheryTSIHostKey =>` list. The `TSIHostParams` class sets all of the paramters of the TSI host. As an example, `offchipSerialIfWidth` sets the data width `N` of `tl_in_bits` and `tl_out_bits` that was described earlier. 
 
 For the OsciBear chip, we are trying to match the following module declaration (this Verilog snippet is taken directly from the OsciBear post-synthesis netlist):
 
@@ -154,7 +170,7 @@ We have tried to replicate this in the `src/main/scala/vcu118/bringup/ConfigsOsc
 make verilog SUB_PROJECT=osci
 ```
 
-Now open the `*top.v` file for the `OsciRocketBringupConfig` (
+Now open the generated verilog in `generated-src/*/*.top.v` file for the `OsciRocketBringupConfig` (
 `generated-src/chipyard.fpga.vcu118.bringup.BringupVCU118FPGATestHarness.OsciRocketBringupConfig/chipyard.fpga.vcu118.bringup.BringupVCU118FPGATestHarness.OsciRocketBringupConfig.top.v`)
 and locate the module declaration for `GenericDeserializer`. Which signal is contributing to the mismatch? Try out a few changes to the `TSIHostParams` in `OsciConfigs.scala` and re-generate the verilog to try to make these ports match.
 
@@ -165,8 +181,18 @@ Now it's time to generate the FPGA bitstream.
 ```
 make bitstream SUB_PROJECT=osci
 ```
+You may see the following "error" output, just ignore it, the `[success]` indicates a successful run:
+```
+[error] Picked up JAVA_TOOL_OPTIONS: -Xmx8G -Xss8M -Djava.io.tmpdir=/tools/C/nayiri/bringup/chipyard/.java_tmp
+[error] WARNING: Empty *.mems.conf file. No memories generated.
+[success] Total time: 3 s, completed Sep 8, 2022 4:28:09 PM
+```
+
+The final bitstream will be located in `generated-src/*/obj/*.bit` (`generated-src/chipyard.fpga.vcu118.bringup.BringupVCU118FPGATestHarness.OsciRocketBringupConfig/obj/*.bit`)
 
 ## Linux Image Generation
+
+COMING SOON!
 
 
 ## Conclusion
