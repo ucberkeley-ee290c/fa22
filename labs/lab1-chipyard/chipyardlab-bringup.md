@@ -55,7 +55,8 @@ You will need to run these commands in every new terminal you open, so you shoul
 
 ```
 source /tools/C/ee290/env-riscv-tools.sh
-export PATH=/tools/xilinx/Vivado/2018.3/bin/vivado:$PATH
+export PATH=/tools/xilinx/Vivado/2018.3/bin:$PATH
+unset ENABLE_SBT_THIN_CLIENT
 ```
 
 
@@ -64,7 +65,7 @@ Run the commands below. These commands clone the Chipyard repository, then initi
 ```
 mkdir -p /tools/C/<userName>/bringup
 cd /tools/C/<userName>/bringup
-git clone https://github.com/ucberkeley-ee290c/chipyard-osci-bringup.git chipyard
+git clone https://github.com/ucberkeley-ee290c/fa22-chipyard-bringup.git chipyard
 
 cd chipyard
 ./scripts/init-submodules-no-riscv-tools.sh
@@ -124,7 +125,7 @@ make verilog SUB_PROJECT=bringup
 - `SUB_PROJECT` is used to set various Makefile build variables like `CONFIG`, `BOARD`, and `FPGA_BRAND`. Open the Makefile to see what the values of these variables are for `SUB_PROJECT=bringup`.
 - The`verilog` target describes a Makefile fragment that elaborates the Chisel source into verilog. After this command runs, the generated verilog for the design should appear in the `fpga/generated-src/<long-design-name>/<long-design-name>.top.v` directory.
 
-Notice that in the Makefile, having `SUB_PROJECT=vcu118` selects the `chipyard.fpga.vcu118.RocketVCU118Config`, whereas `SUB_PROJECT=bringup` selects `chipyard.fpga.vcu118.bringup.RocketVCU118Config`.
+Notice that in the Makefile, having `SUB_PROJECT=vcu118` selects the `chipyard.fpga.vcu118.RocketVCU118Config`, whereas `SUB_PROJECT=bringup` selects `chipyard.fpga.vcu118.bringup.RocketBringupConfig`.
 
 ### Configuring the TSI Host
 
@@ -144,7 +145,7 @@ There is a serializer/deserializer module (TLSerdesser) on both the FPGA and the
 This TSI interface must match EXACTLY for the FPGA to be able to communicate with the test chip, and it's a bit tricky to get the FPGA interface to match the test chip. Let's look at how this is done.
 
 Go back to the `src/main/scala/vcu118/bringup/Configs.scala` file.
-Arguably the most important part of the FPGA configuration is the `WithBringupPeripherals` addition. Look at the `case PeripheryTSIHostKey =>` list. The `TSIHostParams` class sets all of the paramters of the TSI host. As an example, `offchipSerialIfWidth` sets the data width `N` of `tl_in_bits` and `tl_out_bits` that was described earlier. 
+Arguably the most important part of the FPGA configuration is the `WithBringupPeripherals` addition. Look at the `case PeripheryTSIHostKey =>` list. The `TSIHostParams` class sets all of the paramters of the TSI host. As an example, `offchipSerialIfWidth` sets the data width `N` of `tl_in_bits` and `tl_out_bits` that was described earlier. For a full description of these configuration keys, see the [Chipyard documentation for TileLink Node Types](https://chipyard.readthedocs.io/en/latest/TileLink-Diplomacy-Reference/NodeTypes.html).
 
 For the OsciBear chip, we are trying to match the following module declaration (this Verilog snippet is taken directly from the OsciBear post-synthesis netlist):
 
@@ -164,15 +165,15 @@ module GenericSerializer(clock, reset, io_in_ready, io_in_valid,
   output io_in_ready, io_out_valid, io_out_bits;
 ```
 
-We have tried to replicate this in the `src/main/scala/vcu118/bringup/ConfigsOsci.scala` file. Look at the difference in `TSIHostParams` here versus in the `Configs.scala` file in the same directory. Let's generate the verilog for the Osci configuration:
+We have tried to replicate this in the `src/main/scala/vcu118/osci/Configs.scala` file. Look at the difference in `TSIHostParams` here versus in the `src/main/scala/vcu118/bringup/Configs.scala` file. Let's generate the verilog for the Osci configuration:
 
 ```
 make verilog SUB_PROJECT=osci
 ```
 
-Now open the generated verilog in `generated-src/*/*.top.v` file for the `OsciRocketBringupConfig` (
-`generated-src/chipyard.fpga.vcu118.bringup.BringupVCU118FPGATestHarness.OsciRocketBringupConfig/chipyard.fpga.vcu118.bringup.BringupVCU118FPGATestHarness.OsciRocketBringupConfig.top.v`)
-and locate the module declaration for `GenericDeserializer`. Which signal is contributing to the mismatch? Try out a few changes to the `TSIHostParams` in `OsciConfigs.scala` and re-generate the verilog to try to make these ports match.
+Now open the generated verilog in `generated-src/*/*.top.v` file for the `RocketOsciConfig` (
+`generated-src/chipyard.fpga.vcu118.osci.OsciVCU118FPGATestHarness.RocketOsciConfig/chipyard.fpga.vcu118.osci.OsciVCU118FPGATestHarness.RocketOsciConfig.top.v`)
+and locate the module declaration for `GenericDeserializer`. Which signal is contributing to the mismatch? Try out a few changes to the `TSIHostParams` in `osci/Configs.scala` and re-generate the verilog to try to make these ports match.
 
 
 ## FPGA Bitstream Generation
@@ -188,7 +189,7 @@ You may see the following "error" output, just ignore it, the `[success]` indica
 [success] Total time: 3 s, completed Sep 8, 2022 4:28:09 PM
 ```
 
-The final bitstream will be located in `generated-src/*/obj/*.bit` (`generated-src/chipyard.fpga.vcu118.bringup.BringupVCU118FPGATestHarness.OsciRocketBringupConfig/obj/*.bit`)
+The final bitstream will be located in `generated-src/*/obj/*.bit` (`generated-src/chipyard.fpga.vcu118.osci.OsciVCU118FPGATestHarness.RocketOsciConfig/obj/*.bit`)
 
 ## Linux Image Generation
 
