@@ -105,7 +105,7 @@ Now that we know our code is on the DTIM, time to let Osci free!
 
 ### 2.2 Running code at DTIM
 
-The full BootROM dump for Osci is [here](https://github.com/ucberkeley-ee290c/chipyard-osci-sky130/blob/master/generators/chipyard/src/main/scala/ee290c/bootrom/bootrom.rv32.dump), beware that the future chips are slightly different. A BootROM is a small read only memory consisting of boot code that jumps to various PC addresses. Basically, the core with hartid=0 will be in a loop checking for CLINT interrupts at `0x0200_0000`, the msip register. After finishing transfer of our code, we set the msip register to 1, the BootROM will jump to `<boot_core_hart0>` and begin executing at `0x8000_0000`, our DTIM or scratchpad address. The jump is done by setting mepc and calling mret, for more about interrupts see [RISC-V Interrupts by Krste Asanovic](https://riscv.org/wp-content/uploads/2016/07/Tue0900_RISCV-20160712-Interrupts.pdf).
+The full BootROM dump for Osci is [here](https://github.com/ucberkeley-ee290c/chipyard-osci-sky130/blob/master/generators/chipyard/src/main/scala/ee290c/bootrom/bootrom.rv32.dump), beware that the future chips are slightly different. A BootROM is a small read only memory consisting of boot code that jumps to various PC addresses. Basically, the core with hartid=0 will be in a loop checking for CLINT interrupts at `0x0200_0000`, the msip register. After finishing transfer of our code, we set the msip register to 1 through TSI, the BootROM will jump to `<boot_core_hart0>` and begin executing at `0x8000_0000`, our DTIM or scratchpad address. The jump is done by setting mepc and calling mret, for more about interrupts see [RISC-V Interrupts by Krste Asanovic](https://riscv.org/wp-content/uploads/2016/07/Tue0900_RISCV-20160712-Interrupts.pdf).
 
 
 ## 3. Compiling & Linking
@@ -151,18 +151,71 @@ Inspect the code and use [venus](https://venus.cs61c.org) to understand why our 
 ### 3.2 Compiling Code Properly
 There are also a host of other issues, such as heap & stack pointer setups, where data section is located etc. All of these must be configured properly in the linker script .ld that is fed into the compiler, we will explore how to configure the loading location of code in the this section. 
 
-This toolchain is only tested on linux, if it doesn't work on your local OS, please create an cs199 account and log into hive to complete this section. 
+This toolchain is only tested on linux, if it doesn't work on your local OS, please create an cs199 account and log into hive to complete this section. Follow instructions [here](https://inst.eecs.berkeley.edu/share/b/pub/disk.quotas) to get extra disk quota, and create a symbol link as follows so `tmp` shows up in your local folders. 
+```
+$ ln -s /home/tmp/$USER tmp
+$ ls
+tmp
 
-[TODO]
+$ cd tmp
+$ git clone https://github.com/riscv-collab/riscv-gnu-toolchain
+$ ./configure --prefix=/opt/riscv
+$ make linux
+... (go take a run, nap or something, this will take a while) ...
+```
+
+#### 3.2.1 Declaring Scratchpad
+We've taken the liberty for you to easily insert where everything (code binary, heap, stack, etc.) should be located, fill in the following two blanks in `..\oscibear.ld` with the proper number to get the compiler working with correct linking parameters. The argument `ORIGIN` sets where and `LENGTH` sets how large the `SRAM` is. For more details, see [GNU Linker Manual: Memory Layout](https://ftp.gnu.org/old-gnu/Manuals/ld-2.9.1/html_chapter/ld_3.html#SEC16)
+```
+ENTRY(_start)
+
+MEMORY {
+  SRAM(rwx): ORIGIN = 0x_0000000, LENGTH = _K
+}
+...
+```
+
+#### 3.2.2 Relocation
+You may see different segments corresponding to the `.text` (code), `.data` (initialized data), `.bss` (uninitialized data). There are also prefixes such as `.sdata`, where `s` means short/small (for small non array data); and `.tdata`, where `t` means thread local. In those segments mentioned above, we declared `> SRAM` to restrict these segments to be inside the OsciBear's onboard SRAM scratchpad, as shown below. We must also set `__global_pointers` to start at `0x8000_0000` For more details, see [GNU Linker Manual: Optional Section Attributes](https://ftp.gnu.org/old-gnu/Manuals/ld-2.9.1/html_chapter/ld_3.html#SEC21)
+```
+  .sdata : {
+    __global_pointer$ = . + 0x800;
+    *(.srodata.cst16) *(.srodata.cst8) *(.srodata.cst4) *(.srodata.cst2) *(.srodata*)
+    *(.rodata)
+    *(.sdata .sdata.* .gnu.linkonce.s.*)
+    . = ALIGN(4);
+  }> SRAM
+```
+If you're confused about `__global_pointer`, don't worry about it. This is an optimization topic called linker relaxation, you can optionally read about it at [Linker Relaxation, SiFive's Blog](https://www.sifive.com/blog/all-aboard-part-3-linker-relaxation-in-riscv-toolchain).
+
+#### 3.2.3 Running the Compiler
+Our makefile will compile your `hello.c` code with the proper linker script while saving the .i, .s, .o, and the actual binary elf. 
+```
+make all
+```
+**Please upload the first couple lines of objdump so you know your code is indeed linked to 0x8000_0000.**
+```
+$ riscv64-unknown-linux-gnu-objdump -d -t -r hello
+```
 
 ### 3.3 A couple other caviats
-Most compiler binaries are prebuilt for certain sets of architectures, and sometimes we can't find an exact match. For example, float must be enabled on riscv's compiler binary to access csr registers, but we don't have float on our chip. This is a problem we are actively trying to solve. 
+Most compiler binaries are prebuilt for certain sets of architectures, and sometimes we can't find an exact match. For example, float must be enabled on sifive's compiler binary to access csr registers, but we don't have float on our chip. This can be avoided by disabling float using a flag in compiler `-mno-fdiv`. 
 
 ### 4. Acknowledgements & References
-Yufeng Chi, Hongyi (Franklin) Huang, Nayiri
+Code: Yufeng Chi (chiyufeng@berkeley.edu)
+
+Writeup: Franklin Huang (hongyihuang@berkeley.edu)
+
+Makefiles & Supervising TA: Nayiri (nayiri@berkeley.edu)
 
 [Communicating with the DUT, Chipyard documentation version "main"](https://chipyard.readthedocs.io/en/latest/Advanced-Concepts/Chip-Communication.html)
 
 [ready-valid interface cs150 by Chris Fletcher](https://inst.eecs.berkeley.edu/~cs150/Documents/Interfaces.pdf)
 
 [RISC-V Interrupts by Krste Asanovic](https://riscv.org/wp-content/uploads/2016/07/Tue0900_RISCV-20160712-Interrupts.pdf)
+
+[GNU Linker Manual](https://ftp.gnu.org/old-gnu/Manuals/ld-2.9.1/html_chapter/ld_toc.html#TOC5)
+
+[Relocation, SiFive's Blog](https://www.sifive.com/blog/all-aboard-part-2-relocations)
+
+[Linker Relaxation, SiFive's Blog](https://www.sifive.com/blog/all-aboard-part-3-linker-relaxation-in-riscv-toolchain)
