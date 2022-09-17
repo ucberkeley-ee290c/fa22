@@ -7,27 +7,29 @@ This lab will have two parts, firstly conceptual to get familiar with TileLink a
 ## 1. Tethered Serial Interface (TSI) and TileLink
 
 ### 1.1 TileLink
-
-Please read and understand how Channel A and D works in Section 3 of the [TileLink Spec 1.8.0](https://sifive.cdn.prismic.io/sifive%2Fcab05224-2df1-4af8-adee-8d9cba3378cd_tilelink-spec-1.8.0.pdf), this information will be useful in following sections. 
+TileLink is a bus protocol used by Chipyard's memory subsystem. Please read and understand how Channel A and D works in Section 3 of the [TileLink Spec 1.8.0](https://sifive.cdn.prismic.io/sifive%2Fcab05224-2df1-4af8-adee-8d9cba3378cd_tilelink-spec-1.8.0.pdf), this information will be useful in following sections. 
 
 ### 1.2 TSI
 
  TSI protocol is an implementation of HTIF that is used to send commands to the RISC-V DUT. These TSI commands are simple R/W commands that are able to access the DUT’s memory space. During test, the host machine sends TSI commands through an USB adapter to DUT. The DUT then converts the TSI command into a TileLink request. This conversion is done by the SerialAdapter module (located in the `generators/testchipip` project). After the transaction is converted to TileLink, the TLSerdesser (located in `generators/testchipip`) serializes the transaction and sends it to the chip (this TLSerdesser is sometimes also referred to as a digital serial-link or SerDes). Once the serialized transaction is received on the chip, it is deserialized and masters a TileLink bus on the chip which handles the request. 
  
- TLDR: it serializes TileLink packets into at least 7 wires, with configurable width of data wires and utilizes a ready-valid interface. 
+ TLDR: it very simply serializes TileLink packets into at least 7 wires, with configurable width of data wires and utilizes a [ready-valid interface](https://inst.eecs.berkeley.edu/~cs150/Documents/Interfaces.pdf) to transfer data in both directions. 
 
  7 wires (directions are from the perspective of testchip):
- - TL_CLK (from testchip)
- - TL_OUT_VALID (from testchip)
- - TL_OUT_READY (from FPGA)
- - TL_OUT_BITS (from testchip)
-
- - TL_IN_VALID (from FPGA)
- - TL_IN_READY (from testchip)
- - TL_IN_BITS (from FPGA)
-
+ - Clock signal
+     - TL_CLK (from testchip)
+ - testchip to FPGA link
+     - TL_OUT_VALID (from testchip)
+     - TL_OUT_READY (from FPGA)
+     - TL_OUT_BITS (from testchip)
+ - FPGA to testchip link
+     - TL_IN_VALID (from FPGA)
+     - TL_IN_READY (from testchip)
+     - TL_IN_BITS (from FPGA)
 
 ![](assets/chip-bringup.png)
+
+As you can see, this is a very simple protocol with little hardware overhead. But there are downsides, because TileLink is infinitely patient and has no timeout. So if a packet is lost, corrupted, unrecoverable, or not replied, the whole chip will freeze. Watch out for chip-wide freezes when debugging, it is likely a TileLink issue when communicating over TSI. 
 
 ## 2. Loading Program over TSI
 
@@ -160,5 +162,7 @@ Most compiler binaries are prebuilt for certain sets of architectures, and somet
 Yufeng Chi, Hongyi (Franklin) Huang, Nayiri
 
 [Communicating with the DUT, Chipyard documentation version "main"](https://chipyard.readthedocs.io/en/latest/Advanced-Concepts/Chip-Communication.html)
+
+[ready-valid interface cs150 by Chris Fletcher](https://inst.eecs.berkeley.edu/~cs150/Documents/Interfaces.pdf)
 
 [RISC-V Interrupts by Krste Asanovic](https://riscv.org/wp-content/uploads/2016/07/Tue0900_RISCV-20160712-Interrupts.pdf)
