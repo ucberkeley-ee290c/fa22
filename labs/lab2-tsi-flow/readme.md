@@ -176,7 +176,7 @@ MEMORY {
 ```
 
 #### 3.2.2 Relocation
-You may see different segments corresponding to the `.text` (code), `.data` (initialized data), `.bss` (uninitialized data). There are also prefixes such as `.sdata`, where `s` means short/small (for small non array data); and `.tdata`, where `t` means thread local. In those segments mentioned above, we declared `> SRAM` to restrict these segments to be inside the OsciBear's onboard SRAM scratchpad, as shown below. We must also set `__global_pointers` to start at `0x8000_0000` For more details, see [GNU Linker Manual: Optional Section Attributes](https://ftp.gnu.org/old-gnu/Manuals/ld-2.9.1/html_chapter/ld_3.html#SEC21)
+You may see different segments corresponding to the `.text` (code), `.data` (initialized data), `.bss` (uninitialized data). There are also prefixes such as `.sdata`, where `s` means short/small (for small non array data); and `.tdata`, where `t` means thread local. In those segments mentioned above, we declared `> SRAM` to restrict these segments to be inside the OsciBear's onboard SRAM scratchpad, as shown below. For more details, see [GNU Linker Manual: Optional Section Attributes](https://ftp.gnu.org/old-gnu/Manuals/ld-2.9.1/html_chapter/ld_3.html#SEC21)
 ```
   .sdata : {
     __global_pointer$ = . + 0x800;
