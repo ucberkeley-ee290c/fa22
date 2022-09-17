@@ -1,9 +1,7 @@
-#include "hello.h"
+unsigned int *UART_TX_DATA = (unsigned int *)0x1000U;
 
-uint32_t *UART_TXDATA = 0x1000U;
-
-void UART_transmit(uint8_t char) {
-  *UART_TXDATA = char;
+void UART_transmit(unsigned char c) {
+  *UART_TX_DATA = c;
 }
 
 int main() {

@@ -156,13 +156,10 @@ This toolchain is only tested on linux, if it doesn't work on your local OS, ple
 $ ln -s /home/tmp/$USER tmp
 $ ls
 tmp
-
-$ cd tmp
-$ git clone https://github.com/riscv-collab/riscv-gnu-toolchain
-$ ./configure --prefix=/opt/riscv
-$ make linux
-... (go take a run, nap or something, this will take a while) ...
 ```
+
+Download the binaries from https://github.com/sifive/freedom-tools/releases. Add the bin folder to your env path.
+
 
 #### 3.2.1 Declaring Scratchpad
 We've taken the liberty for you to easily insert where everything (code binary, heap, stack, etc.) should be located, fill in the following two blanks in `..\oscibear.ld` with the proper number to get the compiler working with correct linking parameters. The argument `ORIGIN` sets where and `LENGTH` sets how large the `SRAM` is. For more details, see [GNU Linker Manual: Memory Layout](https://ftp.gnu.org/old-gnu/Manuals/ld-2.9.1/html_chapter/ld_3.html#SEC16)
