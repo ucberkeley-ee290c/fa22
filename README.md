@@ -5,6 +5,7 @@ This repo will store any miscellaneous files for the course, as well as links to
 
 ## Labs
 [Lab 1: Chipyard FPGA Bringup Flow](labs/lab1-chipyard/chipyardlab-bringup.md)
+[Lab 2: TSI Bootflow](labs/lab2-tsi-flow/readme.md)
 
 ## Other Git Repos
 [OsciBear Chipyard](https://github.com/ucberkeley-ee290c/chipyard-osci-bringup.git)

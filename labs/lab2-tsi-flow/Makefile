@@ -33,7 +33,7 @@ RISCV_PREFIX ?= riscv64-unknown-elf-
 RISCV_GCC ?= $(RISCV_PREFIX)gcc
 RISCV_GCC_OPTS ?= -DPREALLOCATE=1 -mcmodel=medany -static -std=gnu99 -O2 -ffast-math -fno-common -fno-builtin-printf -fno-tree-loop-distribute-patterns -march=rv32imafc -mabi=ilp32f -mno-fdiv
 RISCV_LINK ?= $(RISCV_GCC) -T $(src_dir)/common/test.ld $(incs)
-RISCV_LINK_OPTS ?= -static -nostdlib -nostartfiles -lgcc -T $(src_dir)/core/oscibear.ld -march=rv32imafc -mabi=ilp32f
+RISCV_LINK_OPTS ?= -static -nostartfiles -lgcc -T $(src_dir)/core/oscibear.ld -march=rv32imafc -mabi=ilp32f
 RISCV_OBJDUMP ?= $(RISCV_PREFIX)objdump --disassemble-all --disassemble-zeroes --section=.text --section=.text.startup --section=.text.init --section=.data
 RISCV_STRIP = $(RISCV_PREFIX)strip
 RISCV_SIM ?= spike --isa=rv$(XLEN)gc

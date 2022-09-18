@@ -117,6 +117,8 @@ Because the C assumes the system starts in a certain status, and during the earl
 Here's a snippet of the code we first wrote in assembly to test basic UART functionality. We are trying to convert the following C code to assembly, and here's the result.
 
 ```C
+#include <stdint.h>
+
 uint32_t *UART_TXDATA = 0x1000U;
 
 void UART_transmit(uint8_t char) {
@@ -160,15 +162,26 @@ tmp
 
 Download the binaries from https://github.com/sifive/freedom-tools/releases. Add the bin folder to your env path. 
 
-For cs199 accounts, export your bin path to the env so makefile will run
+For cs199 accounts, run the following commands to setup compiler enviornment.
 ```
-export PATH="$PATH:PATH_TO_BIN"
+$ cd tmp
+$ wget https://static.dev.sifive.com/dev-tools/freedom-tools/v2020.12/riscv64-unknown-elf-toolchain-10.2.0-2020.12.8-x86_64-linux-ubuntu14.tar.gz
+
+
+~/tmp $ ls
+fa22  riscv64-unknown-elf-toolchain-10.2.0-2020.12.8-x86_64-linux-ubuntu14.tar.gz
+tar -xvzf riscv64-unknown-elf-toolchain-10.2.0-2020.12.8-x86_64-linux-ubuntu14.tar.gz
+$ export PATH="$PATH:/home/aa/users/cs199-___/tmp/riscv64-unknown-elf-toolchain-10.2.0-2020.12.8-x86_64-linux-ubuntu14/bin"
 ```
-[TODO: this setup has not been tested, we only tried installing sudo apt install gcc-riscv64-unknown-elf, but it does not even have stdlib.] cs199 can't install either chipyard nor the riscv-gnu-toolchain due to admin issues.
+
+You can automate the last line into `./profile` or an `env.sh` for future use.
 
 #### 3.2.1 Declaring Scratchpad
-We've taken the liberty for you to easily insert where everything (code binary, heap, stack, etc.) should be located, fill in the following two blanks in `..\oscibear.ld` with the proper number to get the compiler working with correct linking parameters. The argument `ORIGIN` sets where and `LENGTH` sets how large the `SRAM` is. For more details, see [GNU Linker Manual: Memory Layout](https://ftp.gnu.org/old-gnu/Manuals/ld-2.9.1/html_chapter/ld_3.html#SEC16)
+We've taken the liberty for you to easily insert where everything (code binary, heap, stack, etc.) should be located, fill in the following two blanks in `./core/oscibear.ld` with the proper number to get the compiler working with correct linking parameters. The argument `ORIGIN` sets where and `LENGTH` sets how large the `SRAM` is. For more details, see [GNU Linker Manual: Memory Layout](https://ftp.gnu.org/old-gnu/Manuals/ld-2.9.1/html_chapter/ld_3.html#SEC16).
 ```
+/* Normally ENTRY(_start) to setup the pointer enviornments for C
+ * For now uses main in C to simpify.
+ */
 ENTRY(main)
 
 MEMORY {
@@ -197,8 +210,8 @@ make all
 ```
 **Please attach the entire objdump file (`hello.riscv.dump`), check that your code is indeed starts at 0x8000_0000.** 
 
-### 3.3 A couple other caviats
-Most compiler binaries are prebuilt for certain sets of architectures, and sometimes we can't find an exact match. For example, float must be enabled on sifive's compiler binary to access csr registers, but we don't have float on our chip. This can be avoided by disabling float using a flag in compiler `-mno-fdiv`. 
+### 3.3 Compiler and Linker Flags
+Most compiler binaries are prebuilt for certain sets of architectures, and sometimes we can't find an exact match. For example, float must be enabled on sifive's compiler binary to access csr registers, but sometimes we don't have fdiv on our chip. This can be avoided by disabling float using a flag in compiler `-mno-fdiv`. We also put `-nostartfiles` flags in the linker because we don't have a `_start`. `-nostdlib` can also be put into the linker to disable linking standard libraries. 
 
 ### 4. Acknowledgements & References
 Code: Yufeng Chi (chiyufeng@berkeley.edu)
