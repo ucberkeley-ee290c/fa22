@@ -4,7 +4,7 @@
 
 This lab will have two parts, firstly conceptual to get familiar with TileLink and TSI protocol. The other will be hands on compiling and understanding potential linking errors under the hood. 
 
-## 1. Tethered Serial Interface (TSI) and TileLink
+## 1. TileLink and Tethered Serial Interface (TSI)
 
 ### 1.1 TileLink
 TileLink is a bus protocol used by Chipyard's memory subsystem. Please read and understand how Channel A and D works in Section 3 of the [TileLink Spec 1.8.0](https://sifive.cdn.prismic.io/sifive%2Fcab05224-2df1-4af8-adee-8d9cba3378cd_tilelink-spec-1.8.0.pdf), this information will be useful in following sections. 
@@ -35,7 +35,7 @@ As you can see, this is a very simple protocol with little hardware overhead. Bu
 
 As we're still figuring out how to have 20+ people accessing only two OsciBear on one lab bench with one power supply & clock generator, we'll simply explain how our setup works for now & plan to expand this access down the road. 
 
-### 2.1 **Exercise:** A Channel
+### 2.1 TSI Packets on Osci
 Please complete the following table using TSI code snippet from [OsciBear's verilog top](https://github.com/ucberkeley-ee290c/fa22/blob/main/oscibear/sp21/chipyard.TestHarness.EE290CBLEConfig.top.v), and save it for your future reference. Signal are ordered exactly how TSI serializes/deserializes, do not try to change the ordering. 
 
 ```verilog
@@ -158,13 +158,18 @@ $ ls
 tmp
 ```
 
-Download the binaries from https://github.com/sifive/freedom-tools/releases. Add the bin folder to your env path.
+Download the binaries from https://github.com/sifive/freedom-tools/releases. Add the bin folder to your env path. 
 
+For cs199 accounts, export your bin path to the env so makefile will run
+```
+export PATH="$PATH:PATH_TO_BIN"
+```
+[TODO: this setup has not been tested, we only tried installing sudo apt install gcc-riscv64-unknown-elf, but it does not even have stdlib.] cs199 can't install either chipyard nor the riscv-gnu-toolchain due to admin issues.
 
 #### 3.2.1 Declaring Scratchpad
 We've taken the liberty for you to easily insert where everything (code binary, heap, stack, etc.) should be located, fill in the following two blanks in `..\oscibear.ld` with the proper number to get the compiler working with correct linking parameters. The argument `ORIGIN` sets where and `LENGTH` sets how large the `SRAM` is. For more details, see [GNU Linker Manual: Memory Layout](https://ftp.gnu.org/old-gnu/Manuals/ld-2.9.1/html_chapter/ld_3.html#SEC16)
 ```
-ENTRY(_start)
+ENTRY(main)
 
 MEMORY {
   SRAM(rwx): ORIGIN = 0x_0000000, LENGTH = _K
@@ -186,14 +191,11 @@ You may see different segments corresponding to the `.text` (code), `.data` (ini
 If you're confused about `__global_pointer`, don't worry about it. This is an optimization topic called linker relaxation, you can optionally read about it at [Linker Relaxation, SiFive's Blog](https://www.sifive.com/blog/all-aboard-part-3-linker-relaxation-in-riscv-toolchain).
 
 #### 3.2.3 Running the Compiler
-Our makefile will compile your `hello.c` code with the proper linker script while saving the .i, .s, .o, and the actual binary elf. 
+Our makefile will compile your `hello.c` code with the proper linker script while saving the `.riscv.dump`, `.riscv.debug`, and the actual binary elf. 
 ```
 make all
 ```
-**Please upload the first couple lines of objdump so you know your code is indeed linked to 0x8000_0000.**
-```
-$ riscv64-unknown-linux-gnu-objdump -d -t -r hello
-```
+**Please attach the entire objdump file (`hello.riscv.dump`), check that your code is indeed starts at 0x8000_0000.** 
 
 ### 3.3 A couple other caviats
 Most compiler binaries are prebuilt for certain sets of architectures, and sometimes we can't find an exact match. For example, float must be enabled on sifive's compiler binary to access csr registers, but we don't have float on our chip. This can be avoided by disabling float using a flag in compiler `-mno-fdiv`. 
@@ -203,7 +205,7 @@ Code: Yufeng Chi (chiyufeng@berkeley.edu)
 
 Writeup: Franklin Huang (hongyihuang@berkeley.edu)
 
-Makefiles & Supervising TA: Nayiri (nayiri@berkeley.edu)
+Makefile & Supervising TA: Nayiri (nayiri@berkeley.edu)
 
 [Communicating with the DUT, Chipyard documentation version "main"](https://chipyard.readthedocs.io/en/latest/Advanced-Concepts/Chip-Communication.html)
 

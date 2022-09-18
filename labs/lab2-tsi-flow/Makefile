@@ -21,8 +21,6 @@ source_directories = \
 
 core_tests = \
 	core/hello \
-	core/timer_test \
-	core/hellodebug \
 
 tests = $(core_tests)
 

@@ -1,9 +1,9 @@
 /* Yufeng Chi (chiyufeng@berkeley.edu) */
 
-ENTRY(_start)
+ENTRY(main)
 
 MEMORY {
-  SRAM(rwx): ORIGIN = 0x80000000, LENGTH = 8K
+  SRAM(rwx): ORIGIN = 0x_0000000, LENGTH = _K
 }
 
 SECTIONS {
@@ -56,5 +56,4 @@ SECTIONS {
 
   /* End of uninitalized data segement */
   _end = .;
-
 }
