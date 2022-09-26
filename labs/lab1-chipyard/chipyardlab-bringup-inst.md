@@ -4,7 +4,7 @@
 
 ## Tutorial & Lab
 
-BWRC & FPGA Bringup Platform Edition
+EECS Instructional Server & FPGA Bringup Platform Edition
 
 ## Overview
 
@@ -39,38 +39,39 @@ We will generate a Rocket Chip-based design at the RTL level, and then synthesiz
 
 ## Access & Setup
 
-It should be clear by now this isn't going like most other courses. Most don't require signing non-disclosure agreements, or setting up a long string of IT infrastructure. Such is chip-design life. Make sure you have access to the BWRC servers and follow separate instructions to SSH into them before attempting the rest of this lab.
+Make sure you have an EECS Instructional Server `cs199` account before continuing with the lab. To do so, visit [this link](https://acropolis.cs.berkeley.edu/~account/webacct/), select `Login using your Berkeley CalNet ID`, then look for a `cs199-<3-char unique identifier>` account. You may need to reset the password.
+
+The machines you have available to you are either `eda-X`, where X is a number from 1 to 12, and `c111-X`, where X is a number from 1 to 17. The fully qualified DNS name (FQDN) of your machine is then `eda-X.eecs.berkeley.edu` or `c111-X.eecs.berkeley.edu`. SSH into one of these machines from a terminal (`ssh cs199-<id>@eda-X.eecs.berkeley.edu`), from VSCode, or [use X2Go to log in](https://github.com/EECS150/asic-labs-fa22/blob/main/lab1/spec.md#x2go).
 
 
 ## Getting Started
 
 First, we will need to setup our Chipyard workspace.  
-All of our work will occur on the BWRC compute cluster. 
-For this lab, please work in the `/tools/C/` directory on the machine. 
+For this lab, please work in the `/scratch/` directory on the machine. 
 This lab will likely generate too much data for it to fit in your home directory. 
-
-
-First source the following environment file. This will add pre-compiled binaries of all the RISC-V tools and Vivado to your PATH.
-You will need to run these commands in every new terminal you open, so you should add them to your `~/.bashrc`.
-
-```
-source /tools/C/ee290/env-riscv-tools.sh
-export PATH=/tools/xilinx/Vivado/2018.3/bin:$PATH
-unset ENABLE_SBT_THIN_CLIENT
-```
+Note that this directory is not synced across machines, so you must use the same machine every time.
 
 
 Run the commands below. These commands clone the Chipyard repository, then initialize all the submodules. You only need to do this once.
 
 ```
-mkdir -p /tools/C/<userName>/bringup
-cd /tools/C/<userName>/bringup
+mkdir -p /scratch<userName>/bringup
+cd /scratch<userName>/bringup
 git clone https://github.com/ucberkeley-ee290c/fa22-chipyard-bringup.git chipyard
 
 cd chipyard
 ./scripts/init-submodules-no-riscv-tools.sh
 ./scripts/init-fpga.sh
 ```
+
+First source the following environment file. This will add pre-compiled binaries of all the RISC-V tools and Vivado to your PATH.
+You will need to run these commands in every new terminal you open, so you should add them to your `~/.bashrc`.
+
+```
+source scripts/inst-env.sh
+export PATH=/tools/xilinx/Vivado/2018.3/bin:$PATH
+```
+
 
 You may have noticed while initializing your Chipyard repo that there are many submodules.  
 Chipyard is built to allow the designer to generate complex configurations from different projects 
@@ -108,14 +109,6 @@ What are some of the changes added in `WithBringupAdditions`?
 ## Design Elaboration
 
 The first step of the FPGA flow is to elaborate the Chisel source into verilog. 
-
-
-**Note: For all compute intensive commands in the FPGA flow (all make commands from this point forwards), run them on the LSF.** In other words, prepend the command with
-
-```
-bsub -Is
-```
-
 To generate all of the verilog files, run:
 
 ```
