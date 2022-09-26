@@ -69,7 +69,7 @@ You will need to run these commands in every new terminal you open, so you shoul
 
 ```
 source scripts/inst-env.sh
-export PATH=/tools/xilinx/Vivado/2018.3/bin:$PATH
+export PATH=/share/instsww/xilinx/Vivado/current/bin:$PATH
 ```
 
 
@@ -113,6 +113,13 @@ To generate all of the verilog files, run:
 
 ```
 make verilog SUB_PROJECT=bringup
+```
+
+You may see the following "error" output, just ignore it, the `[success]` indicates a successful run:
+```
+[error] Picked up JAVA_TOOL_OPTIONS: -Xmx8G -Xss8M -Djava.io.tmpdir=/tools/C/nayiri/bringup/chipyard/.java_tmp
+[error] WARNING: Empty *.mems.conf file. No memories generated.
+[success] Total time: 3 s, completed Sep 8, 2022 4:28:09 PM
 ```
 
 - `SUB_PROJECT` is used to set various Makefile build variables like `CONFIG`, `BOARD`, and `FPGA_BRAND`. Open the Makefile to see what the values of these variables are for `SUB_PROJECT=bringup`.
@@ -175,14 +182,19 @@ Now it's time to generate the FPGA bitstream.
 ```
 make bitstream SUB_PROJECT=osci
 ```
-You may see the following "error" output, just ignore it, the `[success]` indicates a successful run:
+
+At this point, the command will return with the following error because we don't have the VCU118 drivers installed on the instructional servers:
 ```
-[error] Picked up JAVA_TOOL_OPTIONS: -Xmx8G -Xss8M -Djava.io.tmpdir=/tools/C/nayiri/bringup/chipyard/.java_tmp
-[error] WARNING: Empty *.mems.conf file. No memories generated.
-[success] Total time: 3 s, completed Sep 8, 2022 4:28:09 PM
+WARNING: [Device 21-436] No parts matched 'xcvu9p-flga2104-2L-e'
+ERROR: [Coretcl 2-106] Specified part could not be found.
+
+    while executing
+"source [file join $scriptdir "prologue.tcl"]"
+    (file "/scratch/nk/chipyard-bringup/fpga/fpga-shells/xilinx/common/tcl/vivado.tcl" line 7)
+INFO: [Common 17-206] Exiting Vivado at Mon Sep 26 13:37:37 2022...
 ```
 
-The final bitstream will be located in `generated-src/*/obj/*.bit` (`generated-src/chipyard.fpga.vcu118.osci.OsciVCU118FPGATestHarness.RocketOsciConfig/obj/*.bit`)
+The final bitstream would have been located in `generated-src/*/obj/*.bit` (`generated-src/chipyard.fpga.vcu118.osci.OsciVCU118FPGATestHarness.RocketOsciConfig/obj/*.bit`)
 
 ## Linux Image Generation
 
