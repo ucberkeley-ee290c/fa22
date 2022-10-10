@@ -33,7 +33,7 @@ As you can see, this is a very simple protocol with little hardware overhead. Bu
 
 ## 2. Loading Program over TSI
 
-As we're still figuring out how to have 20+ people accessing only two OsciBear on one lab bench with one power supply & clock generator, we'll simply explain how our setup works for now & plan to expand this access down the road. 
+As we're still figuring out how to have 20+ people accessing only two OsciBear on one lab bench with one power supply & clock generator, we'll simply explain how our setup works for now & plan to expand this access down the road. The following labs are experimental procedures of remotely debugging OsciBear. 
 
 ### 2.1 TSI Packets on Osci
 Please complete the following table using TSI code snippet from [OsciBear's verilog top](https://github.com/ucberkeley-ee290c/fa22/blob/main/oscibear/sp21/chipyard.TestHarness.EE290CBLEConfig.top.v), and save it for your future reference. Signal are ordered exactly how TSI serializes/deserializes, do not try to change the ordering. 
@@ -63,8 +63,8 @@ module GenericSerializer(clock, reset, io_in_ready, io_in_valid,
 | a/d_source  | C                | o = _ |
 | a/d_address | C                | a = _ |
 | a/d_data    | D                | 8w = _|
-| a/d_mask    | C                | w = _ |
 | d_corrupt   | D                |  _    |
+| a/d_mask    | C                | w = _ |
 | (last)      | TSI              |  1    |
 
 Check that your total serdes data packet width is 123. The following ready valid wires is already part of TSI. 
@@ -72,6 +72,16 @@ Check that your total serdes data packet width is 123. The following ready valid
 | ----------- | ---------------- | ----- |
 | a/d_valid   | V                |  1    | 
 | a/d_ready   | R (inverted)     |  1    | 
+
+The following table is a summary of packets transfered in channel A & D over TL-UL (uncached lightweight) as specified in 1.8.0.  
+
+ | Message          | Operation | OpCode| Response      |
+ |------------------|-----------|-------|---------------|
+ | Get           (A)| Get       | 4     | AccessAckData |
+ | AccessAckData (D)| Get/Atomic| 1     | N/A           |
+ | PutFullData   (A)| Put       | 0     | AccessAck (must have contiguous mask)|
+ | PutPartialData(A)| Put       | 1     | AccessAck (may have partial mask)|
+ | AccessAck     (D)| Put       | 0     | N/A           |
 
 ### 2.2 Testing if TSI is Responding Correctly
 
