@@ -145,7 +145,7 @@ There is a serializer/deserializer module (TLSerdesser) on both the FPGA and the
 This TSI interface must match EXACTLY for the FPGA to be able to communicate with the test chip, and it's a bit tricky to get the FPGA interface to match the test chip. Let's look at how this is done.
 
 Go back to the `src/main/scala/vcu118/bringup/Configs.scala` file.
-Arguably the most important part of the FPGA configuration is the `WithBringupPeripherals` addition. Look at the `case PeripheryTSIHostKey =>` list. The `TSIHostParams` class sets all of the paramters of the TSI host. As an example, `offchipSerialIfWidth` sets the data width `N` of `tl_in_bits` and `tl_out_bits` that was described earlier. For a full description of these configuration keys, see the [Chipyard documentation for TileLink Node Types](https://chipyard.readthedocs.io/en/latest/TileLink-Diplomacy-Reference/NodeTypes.html).
+Arguably the most important part of the FPGA configuration is the `WithBringupPeripherals` addition. Look at the `case PeripheryTSIHostKey =>` list. The `TSIHostParams` class sets all of the parameters of the TSI host. As an example, `offchipSerialIfWidth` sets the data width `N` of `tl_in_bits` and `tl_out_bits` that was described earlier. For a full description of these configuration keys, see the [Chipyard documentation for TileLink Node Types](https://chipyard.readthedocs.io/en/latest/TileLink-Diplomacy-Reference/NodeTypes.html).
 
 For the OsciBear chip, we are trying to match the following module declaration (this Verilog snippet is taken directly from the OsciBear post-synthesis netlist):
 
@@ -173,7 +173,7 @@ make verilog SUB_PROJECT=osci
 
 Now open the generated verilog in `generated-src/*/*.top.v` file for the `RocketOsciConfig` (
 `generated-src/chipyard.fpga.vcu118.osci.OsciVCU118FPGATestHarness.RocketOsciConfig/chipyard.fpga.vcu118.osci.OsciVCU118FPGATestHarness.RocketOsciConfig.top.v`)
-and locate the module declaration for `GenericDeserializer`. Which signal is contributing to the mismatch? Try out a few changes to the `TSIHostParams` in `osci/Configs.scala` and re-generate the verilog to try to make these ports match.
+and locate the module declaration for `GenericDeserializer`. Does this modules match our `GenericSerializer` above exactly?
 
 
 ## FPGA Bitstream Generation
@@ -190,6 +190,34 @@ You may see the following "error" output, just ignore it, the `[success]` indica
 ```
 
 The final bitstream will be located in `generated-src/*/obj/*.bit` (`generated-src/chipyard.fpga.vcu118.osci.OsciVCU118FPGATestHarness.RocketOsciConfig/obj/*.bit`)
+
+
+## Making a VCU118 Config for the BearlyML Chip
+
+The previous students working on bringup had already modified the original `vcu118/bringup` config to get `vcu118/osci`. Your job is to create a similar configuration for the BearlyML chip taped out in Spring '21. You'll need to modify the `Makefile`, as well as copy the `osci` directory and rename things accordingly until the Chisel elaborates (hint: use the `sed` command to swap all the Osci naming for BearlyML in the files). Once the Chisel elaborates without errors, modify the `TSIHostParams` in `src/main/scala/vcu118/bearlyml/Configs.scala` to match the Verilog module declaration of the TSI serializer below.
+
+```
+module GenericSerializer(
+  input         clock,
+  input         reset,
+  output        io_in_ready,
+  input         io_in_valid,
+  input  [2:0]  io_in_bits_chanId, io_in_bits_opcode, io_in_bits_param,
+  input  [3:0]  io_in_bits_size, io_in_bits_source,
+  input  [34:0] io_in_bits_address,
+  input  [63:0] io_in_bits_data,
+  input         io_in_bits_corrupt,
+  input  [7:0]  io_in_bits_union,
+  input         io_in_bits_last,
+  input         io_out_ready,
+  output        io_out_valid,
+  output        io_out_bits
+);
+```
+
+Which variable(s) did you have to change to make the `GenericDeserializer` in the generated Verilog match the above declaration?
+Now generate a bitstream for your new BearlyML configuration!
+
 
 ## Linux Image Generation
 
