@@ -55,8 +55,8 @@ You will need to run these commands in every new terminal you open, so you shoul
 
 ```
 source /tools/C/ee290/env-riscv-tools.sh
-export PATH=/tools/xilinx/Vivado/2018.3/bin:$PATH
-unset ENABLE_SBT_THIN_CLIENT
+source /tools/xilinx/Vivado/2018.3/settings64.sh
+source /tools/flexlm/flexlm.sh
 ```
 
 
